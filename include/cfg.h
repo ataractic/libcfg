@@ -1,0 +1,44 @@
+#pragma once
+
+#include <stdlib.h>
+#include <inttypes.h>
+
+enum cfg_token_type_e {
+    cfg_token_type_identifier,
+    cfg_token_type_assignment,
+    cfg_token_type_newline,
+    cfg_token_type_whitespace,
+    cfg_token_type_comment,
+    cfg_token_type_value,
+    cfg_token_type_none,
+};
+
+enum cfg_setting_type_e {
+    cfg_setting_type_integer,
+    cfg_setting_type_decimal,
+    cfg_setting_type_string,
+    cfg_setting_type_boolean,
+};
+
+typedef struct cfg_setting_s {
+    enum cfg_setting_type_e type;
+    char* identifier;
+
+    union {
+        long long integer;
+        long double decimal;
+        char* string;
+        bool boolean;
+    };
+} cfg_setting_t;
+
+typedef struct cfg_s {
+    char* path;
+    cfg_setting_t** settings;
+    size_t settings_len;
+} cfg_t;
+
+int cfg_load(cfg_t* cfg, const char* path);
+void cfg_free(cfg_t* cfg);
+void* cfg_get_setting(cfg_t* cfg, const char* identifier);
+void cfg_dump(cfg_t* cfg);
