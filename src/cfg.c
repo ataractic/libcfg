@@ -2,9 +2,34 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include "../include/cfg.h"
+
+bool cfg_is_whitespace(char c) {
+    return c == '\n' || c == '\r' || c == ' ' || c == '\t';
+}
+
+size_t cfg_strnlen_until_whitespace(const char* str, size_t value_len) {
+    size_t len = 0;
+
+    while (len < value_len && !cfg_is_whitespace(str[len])) {
+        len += 1;
+    }
+
+    return len;
+}
+
+bool is_character_in_string(const char* str, char c, size_t len) {
+    for (size_t i = 0; i < len; ++i) {
+        if (str[i] == c) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
 
 /**
  * @brief frees the config buffer
@@ -70,12 +95,12 @@ int cfg_add_setting(cfg_t* cfg, cfg_setting_t* setting) {
     return 0;
 }
 
-int cfg_add_string_setting(cfg_t* cfg, const char* string, const char* identifier) {
+int cfg_add_string_setting(cfg_t* cfg, const char* str, size_t str_len, const char* id, size_t id_len) {
     cfg_setting_t* setting = malloc(sizeof(cfg_setting_t));
 
     setting->type = cfg_setting_type_string;
-    setting->identifier = strdup(identifier);
-    setting->string = strdup(string);
+    setting->identifier = strndup(id, id_len);
+    setting->string = strndup(str, str_len);
 
     if (cfg_add_setting(cfg, setting) != 0) {
         free(setting->string);
@@ -87,15 +112,14 @@ int cfg_add_string_setting(cfg_t* cfg, const char* string, const char* identifie
     return 0;
 }
 
-int cfg_add_string_setting_with_length(cfg_t* cfg, const char* str, size_t str_len, const char* id, size_t id_len) {
+int cfg_add_boolean_setting(cfg_t* cfg, bool b, const char* id, size_t id_len) {
     cfg_setting_t* setting = malloc(sizeof(cfg_setting_t));
 
-    setting->type = cfg_setting_type_string;
+    setting->type = cfg_setting_type_boolean;
     setting->identifier = strndup(id, id_len);
-    setting->string = strndup(str, str_len);
+    setting->boolean = b;
 
     if (cfg_add_setting(cfg, setting) != 0) {
-        free(setting->string);
         free(setting->identifier);
         free(setting);
         return 1;
@@ -173,22 +197,29 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
                     case '7':
                     case '8':
                     case '9': {
-                        if (cfg_add_string_setting_with_length(cfg, &str[value_pos], value_len, &str[id_pos], id_len)) {
-                            return 1;
-                        }                        
+                        if (is_character_in_string(&str[value_pos], '.', value_len)) {
+                            /* todo: handle double value */
+                        } else {
+                            /* todo: handle integer value */
+                        }              
                         break;
                     }
                     /* the value is a string */
                     case '\"': {
-                        if (cfg_add_string_setting_with_length(cfg, &str[value_pos], value_len, &str[id_pos], id_len)) {
+                        /* todo: handle string formatting */
+                        if (cfg_add_string_setting(cfg, &str[value_pos], value_len, &str[id_pos], id_len)) {
                             return 1;
                         }                        
                         break;
                     }
-                    /* the value is a */
+                    /* the value is a bool */
                     case 'f':
                     case 't': {
-                        if (cfg_add_string_setting_with_length(cfg, &str[value_pos], value_len, &str[id_pos], id_len)) {
+                        if (strncmp(&str[value_pos], "true", 4) == 0 && cfg_strnlen_until_whitespace(&str[value_pos], value_len) == 4) {
+                            cfg_add_boolean_setting(cfg, 1, &str[id_pos], id_len);
+                        } else if (strncmp(&str[value_pos], "false", 5) == 0  && cfg_strnlen_until_whitespace(&str[value_pos], value_len) == 5) {
+                            cfg_add_boolean_setting(cfg, 0, &str[id_pos], id_len);
+                        } else {
                             return 1;
                         }
                         break;
