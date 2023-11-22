@@ -3,16 +3,6 @@
 #include <stdlib.h>
 #include <inttypes.h>
 
-enum cfg_token_type_e {
-    cfg_token_type_identifier,
-    cfg_token_type_assignment,
-    cfg_token_type_newline,
-    cfg_token_type_whitespace,
-    cfg_token_type_comment,
-    cfg_token_type_value,
-    cfg_token_type_none,
-};
-
 enum cfg_setting_type_e {
     cfg_setting_type_integer,
     cfg_setting_type_decimal,
