@@ -19,7 +19,12 @@ int main() {
         return 1;
     }
 
+    printf("dump:\n");
     cfg_dump(&cfg);
+
+    printf("individual values:\n");
+    printf("boolean=%d\n", cfg_get_boolean_setting(&cfg, "boolean"));
+    printf("string=%s\n", cfg_get_string_setting(&cfg, "string"));
 
     cfg_free(&cfg);
 
