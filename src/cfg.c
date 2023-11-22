@@ -297,3 +297,43 @@ cfg_load_close_fd:
 
     return status;
 }
+
+void* cfg_get_setting(cfg_t* cfg, const char* identifier) {
+    for (size_t i = 0; i < cfg->settings_len; i++) {
+        if (strcmp(identifier, cfg->settings[i]->identifier) == 0) {
+            switch (cfg->settings[i]->type) {
+                case cfg_setting_type_boolean: {
+                    return (void*)&(cfg->settings[i]->boolean);
+                }
+                case cfg_setting_type_string: {
+                    return (void*)cfg->settings[i]->string;
+                }
+                case cfg_setting_type_integer: {
+                    return (void*)&(cfg->settings[i]->integer);
+                }
+                case cfg_setting_type_decimal: {
+                    return (void*)&(cfg->settings[i]->decimal);
+                }
+                default: {
+                    break;
+                }
+            }
+        }
+    }
+}
+
+bool cfg_get_boolean_setting(cfg_t* cfg, const char* identifier) {
+    return *((bool*)cfg_get_setting(cfg, identifier));
+}
+
+char* cfg_get_string_setting(cfg_t* cfg, const char* identifier) {
+    return ((char*)cfg_get_setting(cfg, identifier));
+}
+
+long long cfg_get_integer_setting(cfg_t* cfg, const char* identifier) {
+    return *((long long*)cfg_get_setting(cfg, identifier));
+}
+
+long double cfg_get_decimal_setting(cfg_t* cfg, const char* identifier) {
+    return *((long double*)cfg_get_setting(cfg, identifier));
+}
