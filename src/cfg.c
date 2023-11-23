@@ -11,7 +11,7 @@ bool cfg_is_whitespace(char c) {
     return c == '\r' || c == ' ' || c == '\t';
 }
 
-bool is_character_in_string(const char* str, char c, size_t len) {
+bool cfg_is_character_in_string(const char* str, char c, size_t len) {
     for (size_t i = 0; i < len; ++i) {
         if (str[i] == c) {
             return 1;
@@ -178,6 +178,7 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
                     id_len -= 1;
                 }
 
+                /* check for key validity */
                 if (!cfg_is_key_valid(&str[id_pos], id_len)) {
                     return 1;
                 }
@@ -214,7 +215,7 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
                     case '7':
                     case '8':
                     case '9': {
-                        if (is_character_in_string(&str[value_pos], '.', value_len)) {
+                        if (cfg_is_character_in_string(&str[value_pos], '.', value_len)) {
                             /* todo: handle double value */
                         } else {
                             /* todo: handle integer value */
