@@ -7,10 +7,22 @@
 #include <sys/stat.h>
 #include "../include/cfg.h"
 
+/**
+ * @brief checks wether the provided character is a whitespace
+ * @param c character to check
+ * @returns true if the character is a whitespace, false otherwise
+*/
 bool cfg_is_whitespace(char c) {
     return c == '\r' || c == ' ' || c == '\t';
 }
 
+/**
+ * @brief checks wether the provided character is contained in the string with a maximum length
+ * @param str string to search inside
+ * @param c character to search for inside the string
+ * @param len length of the string
+ * @returns true if the character has been found in the string, false otherwise
+*/
 bool cfg_is_character_in_string(const char* str, char c, size_t len) {
     for (size_t i = 0; i < len; ++i) {
         if (str[i] == c) {
@@ -22,8 +34,8 @@ bool cfg_is_character_in_string(const char* str, char c, size_t len) {
 }
 
 /**
- * @brief frees the config buffer
- * @param cfg pointer to the cfg object
+ * @brief frees the loaded configuration
+ * @param cfg pointer to the configuration object
 */
 void cfg_free(cfg_t* cfg) {
     cfg_setting_t* current;
@@ -42,6 +54,10 @@ void cfg_free(cfg_t* cfg) {
     free(cfg->settings);
 }
 
+/**
+ * @brief outputs the current loaded configuration to the console
+ * @param cfg pointer to the configuration object
+*/
 void cfg_dump(cfg_t* cfg) {
     cfg_setting_t* current;
 
@@ -65,13 +81,19 @@ void cfg_dump(cfg_t* cfg) {
                 printf("%s=%llf\n", current->identifier, current->floating);
                 break;
             }
-            
-            default:
+            default: {
                 break;
+            }
         }
     }
 }
 
+/**
+ * @brief adds a setting to the configuration
+ * @param cfg pointer to the configuration object
+ * @param setting pointer to the setting object
+ * @returns 0 on success, 1 otherwise
+*/
 int cfg_add_setting(cfg_t* cfg, cfg_setting_t* setting) {
     if (cfg->settings_len == 0) {
         cfg->settings = malloc(sizeof(cfg_setting_t*) * (cfg->settings_len + 1)); // todo: handle error case
@@ -85,6 +107,15 @@ int cfg_add_setting(cfg_t* cfg, cfg_setting_t* setting) {
     return 0;
 }
 
+/**
+ * @brief adds an string setting to the configuration object
+ * @param cfg pointer to the configuration object
+ * @param str pointer to the string value
+ * @param str_len length of string value
+ * @param id pointer to the identifier token
+ * @param id_len length of the identifier token
+ * @returns 0 on success, 1 otherwise
+*/
 int cfg_add_string_setting(cfg_t* cfg, const char* str, size_t str_len, const char* id, size_t id_len) {
     cfg_setting_t* setting = malloc(sizeof(cfg_setting_t));
 
@@ -102,6 +133,14 @@ int cfg_add_string_setting(cfg_t* cfg, const char* str, size_t str_len, const ch
     return 0;
 }
 
+/**
+ * @brief adds an boolean value setting to the configuration object
+ * @param cfg pointer to the configuration object
+ * @param b value to add
+ * @param id pointer to the identifier token
+ * @param id_len length of the identifier token
+ * @returns 0 on success, 1 otherwise
+*/
 int cfg_add_boolean_setting(cfg_t* cfg, bool b, const char* id, size_t id_len) {
     cfg_setting_t* setting = malloc(sizeof(cfg_setting_t));
 
@@ -118,6 +157,14 @@ int cfg_add_boolean_setting(cfg_t* cfg, bool b, const char* id, size_t id_len) {
     return 0;
 }
 
+/**
+ * @brief adds an floating point number setting to the configuration object
+ * @param cfg pointer to the configuration object
+ * @param value value to add
+ * @param id pointer to the identifier token
+ * @param id_len length of the identifier token
+ * @returns 0 on success, 1 otherwise
+*/
 int cfg_add_floating_setting(cfg_t* cfg, long double value, const char* id, size_t id_len) {
     cfg_setting_t* setting = malloc(sizeof(cfg_setting_t));
 
@@ -134,6 +181,14 @@ int cfg_add_floating_setting(cfg_t* cfg, long double value, const char* id, size
     return 0;
 }
 
+/**
+ * @brief adds an integer number setting to the configuration object
+ * @param cfg pointer to the configuration object
+ * @param value value to add
+ * @param id pointer to the identifier token
+ * @param id_len length of the identifier token
+ * @returns 0 on success, 1 otherwise
+*/
 int cfg_add_integer_setting(cfg_t* cfg, long long value, const char* id, size_t id_len) {
     cfg_setting_t* setting = malloc(sizeof(cfg_setting_t));
 
@@ -150,6 +205,12 @@ int cfg_add_integer_setting(cfg_t* cfg, long long value, const char* id, size_t 
     return 0;
 }
 
+/**
+ * @brief checks if the given token is a valid identifier
+ * @param str pointer to the serialized token
+ * @param len length of the token
+ * @returns true if the given token is a valid identifier, false otherwise
+*/
 bool cfg_is_identifier_valid(const char* str, size_t len) {
     for (size_t i = 0; i < len; i++) {
         if ((str[i] < 'a' || str[i] > 'z')
@@ -163,6 +224,12 @@ bool cfg_is_identifier_valid(const char* str, size_t len) {
     return 1;
 }
 
+/**
+ * @brief checks if the given token is a valid number
+ * @param str pointer to the serialized token
+ * @param len length of the token
+ * @returns true if the given token is a valid number, false otherwise
+*/
 bool cfg_is_number_syntax_valid(const char* str, size_t len) {
     size_t dot_count = 0;
 
@@ -202,6 +269,15 @@ bool cfg_is_number_syntax_valid(const char* str, size_t len) {
     return 1;
 }
 
+/**
+ * @brief parses an integer number from the buffer
+ * @param cfg pointer to the configuration object
+ * @param str pointer to the serialized value token
+ * @param len length of the serialized value token
+ * @param id pointer to the identifier token
+ * @param id_len length of the identifier token
+ * @returns 0 on success, 1 otherwise
+*/
 int cfg_parse_integer(cfg_t* cfg, const char* str, size_t len, const char* id, size_t id_len) {
     int status = 0;
     char *endptr;
@@ -236,6 +312,15 @@ cfg_parse_integer_free:
     return status;
 }
 
+/**
+ * @brief parses a floating point number from the buffer
+ * @param cfg pointer to the configuration object
+ * @param str pointer to the serialized value token
+ * @param len length of the serialized value token
+ * @param id pointer to the identifier token
+ * @param id_len length of the identifier token
+ * @returns 0 on success, 1 otherwise
+*/
 int cfg_parse_floating(cfg_t* cfg, const char* str, size_t len, const char* id, size_t id_len) {
     int status = 0;
     char *endptr;
@@ -270,6 +355,15 @@ cfg_parse_floating_free:
     return status;
 }
 
+/**
+ * @brief parses a string from the buffer
+ * @param cfg pointer to the configuration object
+ * @param str pointer to the serialized value token
+ * @param len length of the serialized value token
+ * @param id pointer to the identifier token
+ * @param id_len length of the identifier token
+ * @returns 0 on success, 1 otherwise
+*/
 int cfg_parse_string(cfg_t* cfg, const char* str, size_t len, const char* id, size_t id_len) {
     if (len < 2 || str[0] != '\"' || str[len - 1] != '\"') {
         return 1;
@@ -280,6 +374,13 @@ int cfg_parse_string(cfg_t* cfg, const char* str, size_t len, const char* id, si
     return 0;
 }
 
+/**
+ * @brief parses the serialized configuration buffer
+ * @param cfg pointer to the cfg_t object
+ * @param str pointer to the buffer containing the serialized configuration
+ * @param len length of the buffer
+ * @returns 0 on success, 1 otherwise
+*/
 int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
     size_t c1 = 0;
     size_t c2 = 0;
@@ -414,7 +515,7 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
 /**
  * @brief Gets file size in bytes
  * @param fd File descriptor
- * @return Size of file in bytes
+ * @returns Size of file in bytes
  */
 size_t cfg_get_file_size(int fd) {
     struct stat s;
@@ -427,7 +528,7 @@ size_t cfg_get_file_size(int fd) {
  * @brief loads a supported config file into the program
  * @param cfg pointer to a cfg object (preferably initialized on the stack)
  * @param path path to the config file
- * @returns 0 on success
+ * @returns 0 on success, 1 otherwise
 */
 int cfg_load(cfg_t* cfg, const char* path) {
     int status = 0;
@@ -471,6 +572,13 @@ cfg_load_close_fd:
     return status;
 }
 
+/**
+ * @brief get a setting value
+ * @param cfg pointer to the cfg_t object
+ * @param identifier identifier string
+ * @param value (out) address of the variable to write value data to
+ * @returns 0 on success, 1 otherwise
+*/
 int cfg_get_setting(cfg_t* cfg, const char* identifier, void* value) {
     for (size_t i = 0; i < cfg->settings_len; i++) {
         if (strcmp(identifier, cfg->settings[i]->identifier) == 0) {
