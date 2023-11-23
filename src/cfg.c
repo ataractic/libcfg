@@ -163,6 +163,45 @@ bool cfg_is_key_valid(const char* str, size_t len) {
     return 1;
 }
 
+bool cfg_is_number_syntax_valid(const char* str, size_t len) {
+    size_t dot_count = 0;
+
+    for (size_t i = 0; i < len; i++) {
+        switch (str[i]) {
+            case '0':
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+            case '5':
+            case '6':
+            case '7':
+            case '8':
+            case '9': {
+                break;
+            }
+            case '.': {
+                dot_count += 1;
+                if (dot_count > 1) {
+                    return 0;
+                }
+                break;
+            }
+            case '-': {
+                if (i != 0) {
+                    return 0;
+                }
+                break;
+            }
+            default: {
+                return 0;
+            }
+        }
+    }
+
+    return 1;
+}
+
 int cfg_parse_integer(cfg_t* cfg, const char* str, size_t len, const char* id, size_t id_len) {
     int status = 0;
     char *endptr;
@@ -315,7 +354,9 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
                     case '7':
                     case '8':
                     case '9': {
-                        /* todo: add checks for number syntax */
+                        if (!cfg_is_number_syntax_valid(&str[value_pos], value_len)) {
+                            return 1;
+                        }
                         if (cfg_is_character_in_string(&str[value_pos], '.', value_len)) {
                             if (cfg_parse_floating(cfg, &str[value_pos], value_len, &str[id_pos], id_len) != 0) {
                                 return 1;
@@ -329,6 +370,7 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
                     }
                     /* the value is a string */
                     case '\"': {
+                        /* todo: create a real parser for string settings */
                         if (cfg_add_string_setting(cfg, &str[value_pos], value_len, &str[id_pos], id_len)) {
                             return 1;
                         }                        
