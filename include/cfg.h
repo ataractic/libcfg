@@ -23,6 +23,7 @@ typedef struct cfg_setting_s {
 } cfg_setting_t;
 
 typedef struct cfg_s {
+    char* last_error;
     char* path;
     cfg_setting_t** settings;
     size_t settings_len;
@@ -32,5 +33,6 @@ int cfg_load(cfg_t* cfg, const char* path);
 void cfg_free(cfg_t* cfg);
 
 int cfg_get_setting(cfg_t* cfg, const char* identifier, void* value);
+char* cfg_get_last_error(cfg_t* cfg);
 
 void cfg_dump(cfg_t* cfg);

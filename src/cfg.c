@@ -3,9 +3,51 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <stdarg.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include "../include/cfg.h"
+
+/**
+ * @brief sets the last error string
+ * @param cfg pointer to the configuration object
+ * @param format format string
+ * @param ... format parameters
+*/
+void cfg_set_last_error(cfg_t* cfg, const char* format, ...) {
+    int size;
+    char* tmp;
+
+    va_list args, args2;
+    va_start(args, format);
+    va_copy(args2, args);
+
+    size = vsnprintf(NULL, 0, format, args);
+
+    tmp = malloc(size + 1);
+
+    if (tmp != NULL) {
+        vsprintf(tmp, format, args2);
+    }
+
+    if (cfg->last_error != NULL) {
+        free(cfg->last_error);
+    }
+
+    cfg->last_error = tmp;
+
+    va_end(args2);
+    va_end(args);
+}
+
+/**
+ * @brief gets the pointer to the last error string
+ * @param cfg pointer to the configuration object
+ * @returns pointer to a string
+*/
+char* cfg_get_last_error(cfg_t* cfg) {
+    return cfg->last_error;
+}
 
 /**
  * @brief checks wether the provided character is a whitespace
@@ -52,6 +94,14 @@ void cfg_free(cfg_t* cfg) {
     }
 
     free(cfg->settings);
+
+    if (cfg->last_error != NULL) {
+        free(cfg->last_error);
+    }
+
+    if (cfg->path != NULL) {
+        free(cfg->path);
+    }
 }
 
 /**
@@ -104,6 +154,7 @@ int cfg_add_setting(cfg_t* cfg, cfg_setting_t* setting) {
     }
 
     if (tmp == NULL) {
+        cfg_set_last_error(cfg, "out of memory");
         return 1;
     }
     
@@ -134,6 +185,7 @@ int cfg_add_string_setting(cfg_t* cfg, const char* str, size_t str_len, const ch
         free(setting->string);
         free(setting->identifier);
         free(setting);
+        cfg_set_last_error(cfg, "(%.*s=%.*s): %s", id_len, id, str_len, str, cfg_get_last_error(cfg));
         return 1;
     }
 
@@ -158,6 +210,7 @@ int cfg_add_boolean_setting(cfg_t* cfg, bool b, const char* id, size_t id_len) {
     if (cfg_add_setting(cfg, setting) != 0) {
         free(setting->identifier);
         free(setting);
+        cfg_set_last_error(cfg, "(%.*s=%s): %s", id_len, id, b ? "true" : "false", cfg_get_last_error(cfg));
         return 1;
     }
 
@@ -182,6 +235,7 @@ int cfg_add_floating_setting(cfg_t* cfg, long double value, const char* id, size
     if (cfg_add_setting(cfg, setting) != 0) {
         free(setting->identifier);
         free(setting);
+        cfg_set_last_error(cfg, "(%.*s=%llf): %s", id_len, id, value, cfg_get_last_error(cfg));
         return 1;
     }
 
@@ -206,6 +260,7 @@ int cfg_add_integer_setting(cfg_t* cfg, long long value, const char* id, size_t 
     if (cfg_add_setting(cfg, setting) != 0) {
         free(setting->identifier);
         free(setting);
+        cfg_set_last_error(cfg, "(%.*s=%lld): %s", id_len, id, value, cfg_get_last_error(cfg));
         return 1;
     }
 
@@ -294,22 +349,26 @@ int cfg_parse_integer(cfg_t* cfg, const char* str, size_t len, const char* id, s
     errno = 0;
     copy = strndup(str, len); /* handle case where the value is the last thing in the file */
     if (copy == NULL && errno == ENOMEM) {
+        cfg_set_last_error(cfg, "out of memory");
         return 1;
     }
 
     errno = 0;
     result = strtoll(copy, &endptr, 10);
     if (endptr == copy) {
+        cfg_set_last_error(cfg, "invalid number");
         status = 1;
         goto cfg_parse_integer_free;
     }
 
     if (errno == ERANGE || errno == EINVAL) {
+        cfg_set_last_error(cfg, "out of range");
         status = 1;
         goto cfg_parse_integer_free;
     }
 
     if (cfg_add_integer_setting(cfg, result, id, id_len) != 0) {
+        cfg_set_last_error(cfg, "failed to add integer setting: %s", cfg_get_last_error(cfg));
         status = 1;
     }
 
@@ -337,22 +396,26 @@ int cfg_parse_floating(cfg_t* cfg, const char* str, size_t len, const char* id, 
     errno = 0;
     copy = strndup(str, len); /* handle case where the value is the last thing in the file */
     if (copy == NULL && errno == ENOMEM) {
+        cfg_set_last_error(cfg, "out of memory");
         return 1;
     }
 
     errno = 0;
     result = strtold(copy, &endptr);
     if (endptr == copy) {
+        cfg_set_last_error(cfg, "invalid number");
         status = 1;
         goto cfg_parse_floating_free;
     }
 
     if (errno == ERANGE || errno == EINVAL) {
+        cfg_set_last_error(cfg, "out of range");
         status = 1;
         goto cfg_parse_floating_free;
     }
 
     if (cfg_add_floating_setting(cfg, result, id, id_len) != 0) {
+        cfg_set_last_error(cfg, "failed to add floating setting: %s", cfg_get_last_error(cfg));
         status = 1;
     }
 
@@ -373,10 +436,14 @@ cfg_parse_floating_free:
 */
 int cfg_parse_string(cfg_t* cfg, const char* str, size_t len, const char* id, size_t id_len) {
     if (len < 2 || str[0] != '\"' || str[len - 1] != '\"') {
+        cfg_set_last_error(cfg, "invalid string format");
         return 1;
     }
 
-    cfg_add_string_setting(cfg, &str[1], len - 2, id, id_len);
+    if (cfg_add_string_setting(cfg, &str[1], len - 2, id, id_len) != 0) {
+        cfg_set_last_error(cfg, "failed to add string setting: %s", cfg_get_last_error(cfg));
+        return 1;
+    }
 
     return 0;
 }
@@ -395,6 +462,8 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
     size_t id_len = 0;
     size_t value_pos = 0;
     size_t value_len = 0;
+    size_t line = 0;
+    size_t pos = 0;
 
     while (c2 < len) {
         switch (str[c1]) {
@@ -408,9 +477,12 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
             case '\n': {
                 c2 += 1;
                 if (c2 >= len) {
+                    cfg_set_last_error(cfg, "identifier expected at line=%lu, pos=%lu", line, pos);
                     return 1;
                 }
                 c1 = c2;
+                line += 1;
+                pos = 0;
                 break;
             }
             /* forward the cursor to the end of the line */
@@ -437,6 +509,7 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
 
                 /* check for key validity */
                 if (!cfg_is_identifier_valid(&str[id_pos], id_len)) {
+                    cfg_set_last_error(cfg, "invalid identifier at line=%lu, pos=%lu", line, pos);
                     return 1;
                 }
 
@@ -473,14 +546,17 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
                     case '8':
                     case '9': {
                         if (!cfg_is_number_syntax_valid(&str[value_pos], value_len)) {
+                            cfg_set_last_error(cfg, "invalid number at line=%lu, pos=%lu", line, pos);
                             return 1;
                         }
                         if (cfg_is_character_in_string(&str[value_pos], '.', value_len)) {
                             if (cfg_parse_floating(cfg, &str[value_pos], value_len, &str[id_pos], id_len) != 0) {
+                                cfg_set_last_error(cfg, "failed to parse floating at line=%lu, pos=%lu: %s", line, pos, cfg_get_last_error(cfg));
                                 return 1;
                             }
                         } else {
                             if (cfg_parse_integer(cfg, &str[value_pos], value_len, &str[id_pos], id_len) != 0) {
+                                cfg_set_last_error(cfg, "failed to parse integer at line=%lu, pos=%lu: %s", line, pos, cfg_get_last_error(cfg));
                                 return 1;
                             }
                         }              
@@ -489,6 +565,7 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
                     /* the value should be a string */
                     case '\"': {
                         if (cfg_parse_string(cfg, &str[value_pos], value_len, &str[id_pos], id_len) != 0) {
+                            cfg_set_last_error(cfg, "failed to parse string at line=%lu, pos=%lu: %s", line, pos, cfg_get_last_error(cfg));
                             return 1;
                         }                        
                         break;
@@ -497,15 +574,23 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
                     case 'f':
                     case 't': {
                         if (strncmp(&str[value_pos], "true", value_len) == 0) {
-                            cfg_add_boolean_setting(cfg, 1, &str[id_pos], id_len);
+                            if (cfg_add_boolean_setting(cfg, 1, &str[id_pos], id_len) != 0) {
+                                cfg_set_last_error(cfg, "failed to add boolean setting: %s", cfg_get_last_error(cfg));
+                                return 1;
+                            }
                         } else if (strncmp(&str[value_pos], "false", value_len) == 0) {
-                            cfg_add_boolean_setting(cfg, 0, &str[id_pos], id_len);
+                            if (cfg_add_boolean_setting(cfg, 0, &str[id_pos], id_len) != 0) {
+                                cfg_set_last_error(cfg, "failed to add boolean setting: %s", cfg_get_last_error(cfg));
+                                return 1;
+                            }
                         } else {
+                            cfg_set_last_error(cfg, "invalid boolean value at line=%lu, pos=%lu", line, pos);
                             return 1;
                         }
                         break;
                     }
                     default: {
+                        cfg_set_last_error(cfg, "invalid value at line=%lu, pos=%lu", line, pos);
                         return 1;
                     }
                 }
@@ -543,32 +628,41 @@ int cfg_load(cfg_t* cfg, const char* path) {
     off_t raw_len;
     char *raw_ptr;
 
+    cfg->last_error = NULL;
+    cfg->path = NULL;
+
     fd = open(path, O_RDWR, 0600);
     if (fd == -1) {
+        cfg_set_last_error(cfg, "failed to open %s", path);
         return 1;
     }
 
     if (cfg_get_file_size(fd) == 0) {
+        cfg_set_last_error(cfg, "failed to get file size for %s", path);
         status = 1;
         goto cfg_load_close_fd;
     }
 
     raw_len = lseek(fd, 0, SEEK_END);
     if (raw_len == -1) {
+        cfg_set_last_error(cfg, "failed to seek end of file for %s", path);
         status = 1;
         goto cfg_load_close_fd;
     }
 
     raw_ptr = mmap(0, raw_len, PROT_READ, MAP_PRIVATE, fd, 0);
     if (raw_ptr == MAP_FAILED) {
+        cfg_set_last_error(cfg, "failed to map file content to memory %s", path);
         status = 1;
         goto cfg_load_close_fd;
     }
 
     if (cfg_parse(cfg, raw_ptr, raw_len) != 0) {
+        cfg_set_last_error(cfg, "parsing failed: %s", cfg_get_last_error(cfg));
         status = 1;
-        cfg_free(cfg);
     }
+
+    cfg->path = strdup(path);
 
 cfg_load_unmap:
     munmap(raw_ptr, raw_len);
@@ -607,11 +701,13 @@ int cfg_get_setting(cfg_t* cfg, const char* identifier, void* value) {
                     return 0;
                 }
                 default: {
+                    cfg_set_last_error(cfg, "huh?");
                     return 1;
                 }
             }
         }
     }
     
+    cfg_set_last_error(cfg, "setting doesn't exist: %s", identifier);
     return 1;
 }
