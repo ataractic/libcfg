@@ -631,6 +631,7 @@ int cfg_load(cfg_t* cfg, const char* path) {
 
     cfg->last_error = NULL;
     cfg->path = strdup(path);
+    cfg->settings_len = 0;
 
     fd = open(path, O_RDWR, 0600);
     if (fd == -1) {
