@@ -150,7 +150,7 @@ int cfg_add_integer_setting(cfg_t* cfg, long long value, const char* id, size_t 
     return 0;
 }
 
-bool cfg_is_key_valid(const char* str, size_t len) {
+bool cfg_is_identifier_valid(const char* str, size_t len) {
     for (size_t i = 0; i < len; i++) {
         if ((str[i] < 'a' || str[i] > 'z')
             && (str[i] < 'A' || str[i] > 'Z')
@@ -270,6 +270,16 @@ cfg_parse_floating_free:
     return status;
 }
 
+int cfg_parse_string(cfg_t* cfg, const char* str, size_t len, const char* id, size_t id_len) {
+    if (len < 2 || str[0] != '\"' || str[len - 1] != '\"') {
+        return 1;
+    }
+
+    cfg_add_string_setting(cfg, str, len, id, id_len);
+
+    return 0;
+}
+
 int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
     size_t c1 = 0;
     size_t c2 = 0;
@@ -318,7 +328,7 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
                 }
 
                 /* check for key validity */
-                if (!cfg_is_key_valid(&str[id_pos], id_len)) {
+                if (!cfg_is_identifier_valid(&str[id_pos], id_len)) {
                     return 1;
                 }
 
@@ -371,7 +381,7 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
                     /* the value is a string */
                     case '\"': {
                         /* todo: create a real parser for string settings */
-                        if (cfg_add_string_setting(cfg, &str[value_pos], value_len, &str[id_pos], id_len)) {
+                        if (cfg_parse_string(cfg, &str[value_pos], value_len, &str[id_pos], id_len) != 0) {
                             return 1;
                         }                        
                         break;
