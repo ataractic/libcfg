@@ -134,6 +134,22 @@ int cfg_add_floating_setting(cfg_t* cfg, long double value, const char* id, size
     return 0;
 }
 
+int cfg_add_integer_setting(cfg_t* cfg, long long value, const char* id, size_t id_len) {
+    cfg_setting_t* setting = malloc(sizeof(cfg_setting_t));
+
+    setting->type = cfg_setting_type_integer;
+    setting->identifier = strndup(id, id_len);
+    setting->integer = value;
+
+    if (cfg_add_setting(cfg, setting) != 0) {
+        free(setting->identifier);
+        free(setting);
+        return 1;
+    }
+
+    return 0;
+}
+
 bool cfg_is_key_valid(const char* str, size_t len) {
     for (size_t i = 0; i < len; i++) {
         if ((str[i] < 'a' || str[i] > 'z')
@@ -145,6 +161,40 @@ bool cfg_is_key_valid(const char* str, size_t len) {
     }
 
     return 1;
+}
+
+int cfg_parse_integer(cfg_t* cfg, const char* str, size_t len, const char* id, size_t id_len) {
+    int status = 0;
+    char *endptr;
+    long long result;
+    char* copy;
+
+    errno = 0;
+    copy = strndup(str, len); /* handle case where the value is the last thing in the file */
+    if (copy == NULL && errno == ENOMEM) {
+        return 1;
+    }
+
+    errno = 0;
+    result = strtoll(copy, &endptr, 10);
+    if (endptr == copy) {
+        status = 1;
+        goto cfg_parse_integer_free;
+    }
+
+    if (errno == ERANGE || errno == EINVAL) {
+        status = 1;
+        goto cfg_parse_integer_free;
+    }
+
+    if (cfg_add_integer_setting(cfg, result, id, id_len) != 0) {
+        status = 1;
+    }
+
+cfg_parse_integer_free:
+    free(copy);
+
+    return status;
 }
 
 int cfg_parse_floating(cfg_t* cfg, const char* str, size_t len, const char* id, size_t id_len) {
@@ -271,7 +321,9 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
                                 return 1;
                             }
                         } else {
-                            /* todo: handle integer value */
+                            if (cfg_parse_integer(cfg, &str[value_pos], value_len, &str[id_pos], id_len) != 0) {
+                                return 1;
+                            }
                         }              
                         break;
                     }
