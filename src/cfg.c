@@ -8,17 +8,7 @@
 #include "../include/cfg.h"
 
 bool cfg_is_whitespace(char c) {
-    return c == '\n' || c == '\r' || c == ' ' || c == '\t';
-}
-
-size_t cfg_strnlen_until_whitespace(const char* str, size_t value_len) {
-    size_t len = 0;
-
-    while (len < value_len && !cfg_is_whitespace(str[len])) {
-        len += 1;
-    }
-
-    return len;
+    return c == '\r' || c == ' ' || c == '\t';
 }
 
 bool is_character_in_string(const char* str, char c, size_t len) {
@@ -128,6 +118,19 @@ int cfg_add_boolean_setting(cfg_t* cfg, bool b, const char* id, size_t id_len) {
     return 0;
 }
 
+bool cfg_is_key_valid(const char* str, size_t len) {
+    for (size_t i = 0; i < len; i++) {
+        if ((str[i] < 'a' || str[i] > 'z')
+            && (str[i] < 'A' || str[i] > 'Z')
+            && (str[i] < '0' || str[i] > '9')
+            && str[i] != '.' && str[i] != '_' && str[i] != '-') {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
 int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
     size_t c1 = 0;
     size_t c2 = 0;
@@ -170,19 +173,33 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
                 id_pos = c1;
                 id_len = c2 - c1;
 
-                /* forward to the value */
-                c2 += 1;
-                if (c2 >= len) {
+                /* trim whitespaces at the end of the identifier */
+                for (size_t i = 1; cfg_is_whitespace(str[c2 - i]); i++) {
+                    id_len -= 1;
+                }
+
+                if (!cfg_is_key_valid(&str[id_pos], id_len)) {
                     return 1;
+                }
+
+                /* forward to the value skipping whitespaces */
+                c2 += 1;
+                while (cfg_is_whitespace(str[c2]) && c2 < len) {
+                    c2 += 1;
                 }
                 c1 = c2;
 
-                /* get the position and length of the value */
+                /* get the position and length of the value until end of line */
                 while (str[c2] != '\n' && str[c2] != '#' && c2 < len) {
                     c2 += 1;
                 }
                 value_pos = c1;
                 value_len = c2 - c1;
+
+                /* trim whitespaces at the end of the value */
+                for (size_t i = 1; cfg_is_whitespace(str[c2 - i]); i++) {
+                    value_len -= 1;
+                }
 
                 switch (str[value_pos]) {
                     /* the value is a number */
@@ -206,7 +223,6 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
                     }
                     /* the value is a string */
                     case '\"': {
-                        /* todo: handle string formatting */
                         if (cfg_add_string_setting(cfg, &str[value_pos], value_len, &str[id_pos], id_len)) {
                             return 1;
                         }                        
@@ -215,9 +231,9 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
                     /* the value is a bool */
                     case 'f':
                     case 't': {
-                        if (strncmp(&str[value_pos], "true", 4) == 0 && cfg_strnlen_until_whitespace(&str[value_pos], value_len) == 4) {
+                        if (strncmp(&str[value_pos], "true", value_len) == 0) {
                             cfg_add_boolean_setting(cfg, 1, &str[id_pos], id_len);
-                        } else if (strncmp(&str[value_pos], "false", 5) == 0  && cfg_strnlen_until_whitespace(&str[value_pos], value_len) == 5) {
+                        } else if (strncmp(&str[value_pos], "false", value_len) == 0) {
                             cfg_add_boolean_setting(cfg, 0, &str[id_pos], id_len);
                         } else {
                             return 1;
