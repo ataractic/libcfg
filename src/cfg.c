@@ -61,8 +61,8 @@ void cfg_dump(cfg_t* cfg) {
                 printf("%s=%s\n", current->identifier, current->boolean ? "true" : "false");
                 break;
             }
-            case cfg_setting_type_decimal: {
-                printf("%s=%llf\n", current->identifier, current->decimal);
+            case cfg_setting_type_floating: {
+                printf("%s=%llf\n", current->identifier, current->floating);
                 break;
             }
             
@@ -118,12 +118,12 @@ int cfg_add_boolean_setting(cfg_t* cfg, bool b, const char* id, size_t id_len) {
     return 0;
 }
 
-int cfg_add_decimal_setting(cfg_t* cfg, long double value, const char* id, size_t id_len) {
+int cfg_add_floating_setting(cfg_t* cfg, long double value, const char* id, size_t id_len) {
     cfg_setting_t* setting = malloc(sizeof(cfg_setting_t));
 
-    setting->type = cfg_setting_type_decimal;
+    setting->type = cfg_setting_type_floating;
     setting->identifier = strndup(id, id_len);
-    setting->decimal = value;
+    setting->floating = value;
 
     if (cfg_add_setting(cfg, setting) != 0) {
         free(setting->identifier);
@@ -147,7 +147,7 @@ bool cfg_is_key_valid(const char* str, size_t len) {
     return 1;
 }
 
-int cfg_parse_decimal(cfg_t* cfg, const char* str, size_t len, const char* id, size_t id_len) {
+int cfg_parse_floating(cfg_t* cfg, const char* str, size_t len, const char* id, size_t id_len) {
     int status = 0;
     char *endptr;
     long double result;
@@ -163,19 +163,19 @@ int cfg_parse_decimal(cfg_t* cfg, const char* str, size_t len, const char* id, s
     result = strtold(copy, &endptr);
     if (endptr == copy) {
         status = 1;
-        goto cfg_parse_decimal_free;
+        goto cfg_parse_floating_free;
     }
 
     if (errno == ERANGE || errno == EINVAL) {
         status = 1;
-        goto cfg_parse_decimal_free;
+        goto cfg_parse_floating_free;
     }
 
-    if (cfg_add_decimal_setting(cfg, result, id, id_len) != 0) {
+    if (cfg_add_floating_setting(cfg, result, id, id_len) != 0) {
         status = 1;
     }
 
-cfg_parse_decimal_free:
+cfg_parse_floating_free:
     free(copy);
 
     return status;
@@ -267,7 +267,7 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
                     case '9': {
                         /* todo: add checks for number syntax */
                         if (cfg_is_character_in_string(&str[value_pos], '.', value_len)) {
-                            if (cfg_parse_decimal(cfg, &str[value_pos], value_len, &str[id_pos], id_len) != 0) {
+                            if (cfg_parse_floating(cfg, &str[value_pos], value_len, &str[id_pos], id_len) != 0) {
                                 return 1;
                             }
                         } else {
@@ -384,8 +384,8 @@ int cfg_get_setting(cfg_t* cfg, const char* identifier, void* value) {
                     *(long long*)value = cfg->settings[i]->integer;
                     return 0;
                 }
-                case cfg_setting_type_decimal: {
-                    *(long double*)value = cfg->settings[i]->decimal;
+                case cfg_setting_type_floating: {
+                    *(long double*)value = cfg->settings[i]->floating;
                     return 0;
                 }
                 default: {

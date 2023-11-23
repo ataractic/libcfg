@@ -5,7 +5,7 @@
 
 enum cfg_setting_type_e {
     cfg_setting_type_integer,
-    cfg_setting_type_decimal,
+    cfg_setting_type_floating,
     cfg_setting_type_string,
     cfg_setting_type_boolean,
 };
@@ -16,7 +16,7 @@ typedef struct cfg_setting_s {
 
     union {
         long long integer;
-        long double decimal;
+        long double floating;
         char* string;
         bool boolean;
     };
