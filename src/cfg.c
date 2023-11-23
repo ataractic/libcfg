@@ -95,12 +95,19 @@ void cfg_dump(cfg_t* cfg) {
  * @returns 0 on success, 1 otherwise
 */
 int cfg_add_setting(cfg_t* cfg, cfg_setting_t* setting) {
+    void* tmp;
+
     if (cfg->settings_len == 0) {
-        cfg->settings = malloc(sizeof(cfg_setting_t*) * (cfg->settings_len + 1)); // todo: handle error case
+        tmp = malloc(sizeof(cfg_setting_t*) * (cfg->settings_len + 1));
     } else {
-        cfg->settings = realloc(cfg->settings, sizeof(cfg_setting_t*) * (cfg->settings_len + 1)); // todo: handle error case
+        tmp = realloc(cfg->settings, sizeof(cfg_setting_t*) * (cfg->settings_len + 1));
+    }
+
+    if (tmp == NULL) {
+        return 1;
     }
     
+    cfg->settings = tmp;
     cfg->settings_len += 1;
     cfg->settings[cfg->settings_len - 1] = setting;
 
