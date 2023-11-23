@@ -475,6 +475,7 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
             case '\t':
             case ' ': {
                 c2 += 1;
+                col += 1;
             }
             /* end of line expect an identifier */
             case '\n': {
@@ -488,6 +489,7 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
             case '#': {
                 while (str[c2] != '\n' && c2 < len) {
                     c2 += 1;
+                    col += 1;
                 }
                 break;
             }
@@ -497,6 +499,7 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
                 /* get the position and length of the identifier */
                 while (str[c2] != '=' && c2 < len) {
                     c2 += 1;
+                    col += 1;
                 }
                 id_pos = c1;
                 id_len = c2 - c1;
@@ -508,21 +511,23 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
 
                 /* check for key validity */
                 if (!cfg_is_identifier_valid(&str[id_pos], id_len)) {
-                    cfg_set_last_error(cfg, "invalid identifier (l=%lu, c=%lu)", line, col);
+                    cfg_set_last_error(cfg, "invalid identifier: %.*s (%s:%lu:%lu)", id_len, &str[id_pos], cfg->path, line, col - id_len);
                     return 1;
                 }
 
                 /* forward to the value skipping whitespaces */
                 c2 += 1;
+                col += 1;
                 while (cfg_is_whitespace(str[c2]) && c2 < len) {
                     c2 += 1;
+                    col += 1;
                 }
                 c1 = c2;
 
                 /* get the position and length of the value until end of line */
                 while (str[c2] != '\n' && str[c2] != '#' && c2 < len) {
                     c2 += 1;
-                    
+                    col += 1;
                 }
                 value_pos = c1;
                 value_len = c2 - c1;
@@ -546,17 +551,17 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
                     case '8':
                     case '9': {
                         if (!cfg_is_number_syntax_valid(&str[value_pos], value_len)) {
-                            cfg_set_last_error(cfg, "invalid number: %.*s (l=%lu, c=%lu)", value_len, &str[value_pos], line, col);
+                            cfg_set_last_error(cfg, "invalid number: %.*s (%s:%lu:%lu)", value_len, &str[value_pos], cfg->path, line, col - value_len);
                             return 1;
                         }
                         if (cfg_is_character_in_string(&str[value_pos], '.', value_len)) {
                             if (cfg_parse_floating(cfg, &str[value_pos], value_len, &str[id_pos], id_len) != 0) {
-                                cfg_set_last_error(cfg, "failed to parse floating: %.*s (l=%lu, p=%lu): %s", value_len, &str[value_pos], line, col, cfg_get_last_error(cfg));
+                                cfg_set_last_error(cfg, "failed to parse floating: %.*s (%s:%lu:%lu): %s", value_len, &str[value_pos], cfg->path, line, col - value_len, cfg_get_last_error(cfg));
                                 return 1;
                             }
                         } else {
                             if (cfg_parse_integer(cfg, &str[value_pos], value_len, &str[id_pos], id_len) != 0) {
-                                cfg_set_last_error(cfg, "failed to parse integer: %.*s (l=%lu, p=%lu): %s", value_len, &str[value_pos], line, col, cfg_get_last_error(cfg));
+                                cfg_set_last_error(cfg, "failed to parse integer: %.*s (%s:%lu:%lu): %s", value_len, &str[value_pos], cfg->path, line, col - value_len, cfg_get_last_error(cfg));
                                 return 1;
                             }
                         }              
@@ -565,7 +570,7 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
                     /* the value should be a string */
                     case '\"': {
                         if (cfg_parse_string(cfg, &str[value_pos], value_len, &str[id_pos], id_len) != 0) {
-                            cfg_set_last_error(cfg, "failed to parse string: %.*s (l=%lu, p=%lu): %s", value_len, &str[value_pos], line, col, cfg_get_last_error(cfg));
+                            cfg_set_last_error(cfg, "failed to parse string: %.*s (%s:%lu:%lu): %s", value_len, &str[value_pos], cfg->path, line, col - value_len, cfg_get_last_error(cfg));
                             return 1;
                         }                        
                         break;
@@ -584,13 +589,13 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
                                 return 1;
                             }
                         } else {
-                            cfg_set_last_error(cfg, "invalid boolean value: %.*s (l=%lu, c=%lu)", value_len, &str[value_pos], line, col);
+                            cfg_set_last_error(cfg, "invalid boolean value: %.*s (%s:%lu:%lu)", value_len, &str[value_pos], cfg->path, line, col - value_len);
                             return 1;
                         }
                         break;
                     }
                     default: {
-                        cfg_set_last_error(cfg, "invalid value: (null) (l=%lu, c=%lu)", line, col);
+                        cfg_set_last_error(cfg, "invalid value: (null) (%s:%lu:%lu)", cfg->path, line, col - value_len);
                         return 1;
                     }
                 }
@@ -627,7 +632,7 @@ int cfg_load(cfg_t* cfg, const char* path) {
     char *raw_ptr;
 
     cfg->last_error = NULL;
-    cfg->path = NULL;
+    cfg->path = strdup(path);
 
     fd = open(path, O_RDWR, 0600);
     if (fd == -1) {
@@ -659,8 +664,6 @@ int cfg_load(cfg_t* cfg, const char* path) {
         cfg_set_last_error(cfg, "parsing failed: %s", cfg_get_last_error(cfg));
         status = 1;
     }
-
-    cfg->path = strdup(path);
 
 cfg_load_unmap:
     munmap(raw_ptr, raw_len);
