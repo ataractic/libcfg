@@ -50,7 +50,7 @@ void cfg_dump(cfg_t* cfg) {
 
         switch (current->type) {
             case cfg_setting_type_string: {
-                printf("%s=%s\n", current->identifier, current->string);
+                printf("%s=\"%s\"\n", current->identifier, current->string);
                 break;
             }
             case cfg_setting_type_integer: {
@@ -275,7 +275,7 @@ int cfg_parse_string(cfg_t* cfg, const char* str, size_t len, const char* id, si
         return 1;
     }
 
-    cfg_add_string_setting(cfg, str, len, id, id_len);
+    cfg_add_string_setting(cfg, &str[1], len - 2, id, id_len);
 
     return 0;
 }
@@ -352,7 +352,7 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
                 }
 
                 switch (str[value_pos]) {
-                    /* the value is a number */
+                    /* the value should be a number */
                     case '-':
                     case '0':
                     case '1':
@@ -378,15 +378,14 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
                         }              
                         break;
                     }
-                    /* the value is a string */
+                    /* the value should be a string */
                     case '\"': {
-                        /* todo: create a real parser for string settings */
                         if (cfg_parse_string(cfg, &str[value_pos], value_len, &str[id_pos], id_len) != 0) {
                             return 1;
                         }                        
                         break;
                     }
-                    /* the value is a bool */
+                    /* the value should be a bool */
                     case 'f':
                     case 't': {
                         if (strncmp(&str[value_pos], "true", value_len) == 0) {
