@@ -1,9 +1,12 @@
+#define _POSIX_C_SOURCE 199309L
+
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
 #include <stdarg.h>
+#include <time.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include "../include/cfg.h"
@@ -462,11 +465,11 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
     size_t id_len = 0;
     size_t value_pos = 0;
     size_t value_len = 0;
-    size_t line = 0;
-    size_t pos = 0;
+    size_t line = 1;
+    size_t col = 1;
 
     while (c2 < len) {
-        switch (str[c1]) {
+        switch (str[c2]) {
             /* forward the cursor until something meaningful */
             case '\r':
             case '\t':
@@ -476,13 +479,9 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
             /* end of line expect an identifier */
             case '\n': {
                 c2 += 1;
-                if (c2 >= len) {
-                    cfg_set_last_error(cfg, "identifier expected at line=%lu, pos=%lu", line, pos);
-                    return 1;
-                }
-                c1 = c2;
+                
                 line += 1;
-                pos = 0;
+                col = 1;
                 break;
             }
             /* forward the cursor to the end of the line */
@@ -490,11 +489,11 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
                 while (str[c2] != '\n' && c2 < len) {
                     c2 += 1;
                 }
-                c1 = c2;
                 break;
             }
             /* we have an identifier */
             default: {
+                c1 = c2;
                 /* get the position and length of the identifier */
                 while (str[c2] != '=' && c2 < len) {
                     c2 += 1;
@@ -509,7 +508,7 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
 
                 /* check for key validity */
                 if (!cfg_is_identifier_valid(&str[id_pos], id_len)) {
-                    cfg_set_last_error(cfg, "invalid identifier at line=%lu, pos=%lu", line, pos);
+                    cfg_set_last_error(cfg, "invalid identifier (l=%lu, c=%lu)", line, col);
                     return 1;
                 }
 
@@ -523,6 +522,7 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
                 /* get the position and length of the value until end of line */
                 while (str[c2] != '\n' && str[c2] != '#' && c2 < len) {
                     c2 += 1;
+                    
                 }
                 value_pos = c1;
                 value_len = c2 - c1;
@@ -546,17 +546,17 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
                     case '8':
                     case '9': {
                         if (!cfg_is_number_syntax_valid(&str[value_pos], value_len)) {
-                            cfg_set_last_error(cfg, "invalid number at line=%lu, pos=%lu", line, pos);
+                            cfg_set_last_error(cfg, "invalid number: %.*s (l=%lu, c=%lu)", value_len, &str[value_pos], line, col);
                             return 1;
                         }
                         if (cfg_is_character_in_string(&str[value_pos], '.', value_len)) {
                             if (cfg_parse_floating(cfg, &str[value_pos], value_len, &str[id_pos], id_len) != 0) {
-                                cfg_set_last_error(cfg, "failed to parse floating at line=%lu, pos=%lu: %s", line, pos, cfg_get_last_error(cfg));
+                                cfg_set_last_error(cfg, "failed to parse floating: %.*s (l=%lu, p=%lu): %s", value_len, &str[value_pos], line, col, cfg_get_last_error(cfg));
                                 return 1;
                             }
                         } else {
                             if (cfg_parse_integer(cfg, &str[value_pos], value_len, &str[id_pos], id_len) != 0) {
-                                cfg_set_last_error(cfg, "failed to parse integer at line=%lu, pos=%lu: %s", line, pos, cfg_get_last_error(cfg));
+                                cfg_set_last_error(cfg, "failed to parse integer: %.*s (l=%lu, p=%lu): %s", value_len, &str[value_pos], line, col, cfg_get_last_error(cfg));
                                 return 1;
                             }
                         }              
@@ -565,7 +565,7 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
                     /* the value should be a string */
                     case '\"': {
                         if (cfg_parse_string(cfg, &str[value_pos], value_len, &str[id_pos], id_len) != 0) {
-                            cfg_set_last_error(cfg, "failed to parse string at line=%lu, pos=%lu: %s", line, pos, cfg_get_last_error(cfg));
+                            cfg_set_last_error(cfg, "failed to parse string: %.*s (l=%lu, p=%lu): %s", value_len, &str[value_pos], line, col, cfg_get_last_error(cfg));
                             return 1;
                         }                        
                         break;
@@ -584,18 +584,16 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
                                 return 1;
                             }
                         } else {
-                            cfg_set_last_error(cfg, "invalid boolean value at line=%lu, pos=%lu", line, pos);
+                            cfg_set_last_error(cfg, "invalid boolean value: %.*s (l=%lu, c=%lu)", value_len, &str[value_pos], line, col);
                             return 1;
                         }
                         break;
                     }
                     default: {
-                        cfg_set_last_error(cfg, "invalid value at line=%lu, pos=%lu", line, pos);
+                        cfg_set_last_error(cfg, "invalid value: (null) (l=%lu, c=%lu)", line, col);
                         return 1;
                     }
                 }
-
-                c1 = c2;
                 break;
             }
         }
