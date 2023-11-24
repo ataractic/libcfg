@@ -8,13 +8,13 @@ typedef struct my_config_s {
     char* my_string;
 } my_config_t;
 
-int main() {
+int main(int argc, char** argv) {
     int status = 0;
     cfg_t cfg;
     my_config_t my_config;
 
     /* loads a config file and gets its content. */
-    if (cfg_load(&cfg, "./test_1.cfg") != 0) {
+    if (cfg_load(&cfg, argc != 2 ? "./test_1.cfg" : argv[1]) != 0) {
         /* prints the reason of the fail */
         printf("cfg: error: %s\n", cfg_get_last_error(&cfg));
         status = 1;
