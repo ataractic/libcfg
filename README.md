@@ -22,11 +22,14 @@ my_double = 3.456789
 
 int main() {
     int status = 0;
-    cfg_t cfg;
+    cfg_t cfg; /* = {0} */
     long long my_int;
     long double my_double;
     bool my_bool;
     char* my_string;
+
+    /* initializes the object */
+    cfg_init(&cfg);
 
     /* loads a config file and gets its content. */
     if (cfg_load(&cfg, "./test_1.cfg") != 0) {
@@ -36,7 +39,14 @@ int main() {
         goto main_free;
     }
 
-    /* get the setting values (this is not a copy) */
+    /* it is also possible to load a config from a buffer */
+    if (cfg_parse(&cfg, "buffer.content=808", 18) != 0) {
+        printf("cfg: error: %s\n", cfg_get_last_error(&cfg));
+        status = 1;
+        goto main_free;
+    }
+
+    /* get the setting values (this does not make a copy) */
     if (cfg_get_setting(&cfg, "my_string", &my_string) != 0) {
         printf("cfg: error: %s\n", cfg_get_last_error(&cfg));
         status = 1;
@@ -58,13 +68,8 @@ int main() {
         goto main_free;
     }
 
-    /* use the contents */
-    printf("string=%s, bool=%s, int=%lld, float=%llf\n",
-        my_string,
-        my_bool ? "true" : "false",
-        my_int,
-        my_double
-    );
+    /* dumps the config */
+    cfg_dump(&cfg);
 
 main_free:
     /* free the cfg object and remove the settings */

@@ -1,55 +1,56 @@
 #include <stdio.h>
 #include "../include/cfg.h"
 
-typedef struct my_config_s {
+int main() {
+    int status = 0;
+    cfg_t cfg; /* = {0} */
     long long my_int;
     long double my_double;
     bool my_bool;
     char* my_string;
-} my_config_t;
 
-int main(int argc, char** argv) {
-    int status = 0;
-    cfg_t cfg;
-    my_config_t my_config;
+    /* initializes the object */
+    cfg_init(&cfg);
 
     /* loads a config file and gets its content. */
-    if (cfg_load(&cfg, argc != 2 ? "./test_1.cfg" : argv[1]) != 0) {
+    if (cfg_load(&cfg, "./test_1.cfg") != 0) {
         /* prints the reason of the fail */
         printf("cfg: error: %s\n", cfg_get_last_error(&cfg));
         status = 1;
         goto main_free;
     }
 
-    /* get the setting values (this is not a copy) */
-    if (cfg_get_setting(&cfg, "my_string", &my_config.my_string) != 0) {
-        printf("cfg: error: %s\n", cfg_get_last_error(&cfg));
-        status = 1;
-        goto main_free;
-    }
-    if (cfg_get_setting(&cfg, "my_int", &my_config.my_int) != 0) {
-        printf("cfg: error: %s\n", cfg_get_last_error(&cfg));
-        status = 1;
-        goto main_free;
-    }
-    if (cfg_get_setting(&cfg, "my_double", &my_config.my_double) != 0) {
-        printf("cfg: error: %s\n", cfg_get_last_error(&cfg));
-        status = 1;
-        goto main_free;
-    }
-    if (cfg_get_setting(&cfg, "my_bool", &my_config.my_bool) != 0) {
+    /* it is also possible to load a config from a buffer */
+    if (cfg_parse(&cfg, "buffer.content=808", 18) != 0) {
         printf("cfg: error: %s\n", cfg_get_last_error(&cfg));
         status = 1;
         goto main_free;
     }
 
-    /* use the contents */
-    printf("string=%s, bool=%s, int=%lld, float=%Lf\n",
-        my_config.my_string,
-        my_config.my_bool ? "true" : "false",
-        my_config.my_int,
-        my_config.my_double
-    );
+    /* get the setting values (this does not make a copy) */
+    if (cfg_get_setting(&cfg, "my_string", &my_string) != 0) {
+        printf("cfg: error: %s\n", cfg_get_last_error(&cfg));
+        status = 1;
+        goto main_free;
+    }
+    if (cfg_get_setting(&cfg, "my_int", &my_int) != 0) {
+        printf("cfg: error: %s\n", cfg_get_last_error(&cfg));
+        status = 1;
+        goto main_free;
+    }
+    if (cfg_get_setting(&cfg, "my_double", &my_double) != 0) {
+        printf("cfg: error: %s\n", cfg_get_last_error(&cfg));
+        status = 1;
+        goto main_free;
+    }
+    if (cfg_get_setting(&cfg, "my_bool", &my_bool) != 0) {
+        printf("cfg: error: %s\n", cfg_get_last_error(&cfg));
+        status = 1;
+        goto main_free;
+    }
+
+    /* dumps the config */
+    cfg_dump(&cfg);
 
 main_free:
     /* free the cfg object and remove the settings */

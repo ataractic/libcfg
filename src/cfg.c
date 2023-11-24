@@ -609,8 +609,21 @@ static size_t cfg_get_file_size(int fd) {
 }
 
 /**
+ * @brief initilizes a cfg object, must be called before any other
+ * libcfg function. an alternative can be to declare the object with the
+ * null assignment (example: cfg_t cfg = {0}).
+ * @param cfg pointer to a cfg object
+*/
+void cfg_init(cfg_t* cfg) {
+    cfg->last_error = NULL;
+    cfg->path = NULL;
+    cfg->settings = NULL;
+    cfg->settings_len = 0;
+}
+
+/**
  * @brief loads a supported config file into the program
- * @param cfg pointer to a cfg object (preferably initialized on the stack)
+ * @param cfg pointer to an initilized cfg object (see cfg_init())
  * @param path path to the config file
  * @returns 0 on success, 1 otherwise
 */
