@@ -44,7 +44,7 @@ int main() {
     }
 
     /* use the contents */
-    printf("string=%s, bool=%s, int=%lld, float=%llf\n",
+    printf("string=%s, bool=%s, int=%lld, float=%Lf\n",
         my_config.my_string,
         my_config.my_bool ? "true" : "false",
         my_config.my_int,
