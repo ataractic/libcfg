@@ -15,7 +15,7 @@
  * @param format format string
  * @param ... format parameters
 */
-void cfg_set_last_error(cfg_t* cfg, const char* format, ...) {
+static void cfg_set_last_error(cfg_t* cfg, const char* format, ...) {
     int size;
     char* tmp;
 
@@ -55,25 +55,8 @@ char* cfg_get_last_error(cfg_t* cfg) {
  * @param c character to check
  * @returns true if the character is a whitespace, false otherwise
 */
-bool cfg_is_whitespace(char c) {
+static bool cfg_is_whitespace(char c) {
     return c == '\r' || c == ' ' || c == '\t';
-}
-
-/**
- * @brief checks wether the provided character is contained in the string with a maximum length
- * @param str string to search inside
- * @param c character to search for inside the string
- * @param len length of the string
- * @returns true if the character has been found in the string, false otherwise
-*/
-bool cfg_is_character_in_string(const char* str, char c, size_t len) {
-    for (size_t i = 0; i < len; ++i) {
-        if (str[i] == c) {
-            return 1;
-        }
-    }
-
-    return 0;
 }
 
 /**
@@ -129,7 +112,7 @@ void cfg_dump(cfg_t* cfg) {
                 break;
             }
             case cfg_setting_type_floating: {
-                printf("%s=%llf\n", current->identifier, current->floating);
+                printf("%s=%Lf\n", current->identifier, current->floating);
                 break;
             }
             default: {
@@ -145,7 +128,7 @@ void cfg_dump(cfg_t* cfg) {
  * @param setting pointer to the setting object
  * @returns 0 on success, 1 otherwise
 */
-int cfg_add_setting(cfg_t* cfg, cfg_setting_t* setting) {
+static int cfg_add_setting(cfg_t* cfg, cfg_setting_t* setting) {
     void* tmp;
 
     if (cfg->settings_len == 0) {
@@ -175,7 +158,7 @@ int cfg_add_setting(cfg_t* cfg, cfg_setting_t* setting) {
  * @param id_len length of the identifier token
  * @returns 0 on success, 1 otherwise
 */
-int cfg_add_string_setting(cfg_t* cfg, const char* str, size_t str_len, const char* id, size_t id_len) {
+static int cfg_add_string_setting(cfg_t* cfg, const char* str, size_t str_len, const char* id, size_t id_len) {
     cfg_setting_t* setting = malloc(sizeof(cfg_setting_t));
 
     setting->type = cfg_setting_type_string;
@@ -201,7 +184,7 @@ int cfg_add_string_setting(cfg_t* cfg, const char* str, size_t str_len, const ch
  * @param id_len length of the identifier token
  * @returns 0 on success, 1 otherwise
 */
-int cfg_add_boolean_setting(cfg_t* cfg, bool b, const char* id, size_t id_len) {
+static int cfg_add_boolean_setting(cfg_t* cfg, bool b, const char* id, size_t id_len) {
     cfg_setting_t* setting = malloc(sizeof(cfg_setting_t));
 
     setting->type = cfg_setting_type_boolean;
@@ -226,7 +209,7 @@ int cfg_add_boolean_setting(cfg_t* cfg, bool b, const char* id, size_t id_len) {
  * @param id_len length of the identifier token
  * @returns 0 on success, 1 otherwise
 */
-int cfg_add_floating_setting(cfg_t* cfg, long double value, const char* id, size_t id_len) {
+static int cfg_add_floating_setting(cfg_t* cfg, long double value, const char* id, size_t id_len) {
     cfg_setting_t* setting = malloc(sizeof(cfg_setting_t));
 
     setting->type = cfg_setting_type_floating;
@@ -251,7 +234,7 @@ int cfg_add_floating_setting(cfg_t* cfg, long double value, const char* id, size
  * @param id_len length of the identifier token
  * @returns 0 on success, 1 otherwise
 */
-int cfg_add_integer_setting(cfg_t* cfg, long long value, const char* id, size_t id_len) {
+static int cfg_add_integer_setting(cfg_t* cfg, long long value, const char* id, size_t id_len) {
     cfg_setting_t* setting = malloc(sizeof(cfg_setting_t));
 
     setting->type = cfg_setting_type_integer;
@@ -274,7 +257,7 @@ int cfg_add_integer_setting(cfg_t* cfg, long long value, const char* id, size_t 
  * @param len length of the token
  * @returns true if the given token is a valid identifier, false otherwise
 */
-bool cfg_is_identifier_valid(const char* str, size_t len) {
+static bool cfg_is_identifier_valid(const char* str, size_t len) {
     for (size_t i = 0; i < len; i++) {
         if ((str[i] < 'a' || str[i] > 'z')
             && (str[i] < 'A' || str[i] > 'Z')
@@ -293,7 +276,7 @@ bool cfg_is_identifier_valid(const char* str, size_t len) {
  * @param len length of the token
  * @returns true if the given token is a valid number, false otherwise
 */
-bool cfg_is_number_syntax_valid(const char* str, size_t len) {
+static bool cfg_is_number_syntax_valid(const char* str, size_t len) {
     size_t dot_count = 0;
 
     for (size_t i = 0; i < len; i++) {
@@ -341,7 +324,7 @@ bool cfg_is_number_syntax_valid(const char* str, size_t len) {
  * @param id_len length of the identifier token
  * @returns 0 on success, 1 otherwise
 */
-int cfg_parse_integer(cfg_t* cfg, const char* str, size_t len, const char* id, size_t id_len) {
+static int cfg_parse_integer(cfg_t* cfg, const char* str, size_t len, const char* id, size_t id_len) {
     int status = 0;
     char *endptr;
     long long result;
@@ -388,7 +371,7 @@ cfg_parse_integer_free:
  * @param id_len length of the identifier token
  * @returns 0 on success, 1 otherwise
 */
-int cfg_parse_floating(cfg_t* cfg, const char* str, size_t len, const char* id, size_t id_len) {
+static int cfg_parse_floating(cfg_t* cfg, const char* str, size_t len, const char* id, size_t id_len) {
     int status = 0;
     char *endptr;
     long double result;
@@ -435,7 +418,7 @@ cfg_parse_floating_free:
  * @param id_len length of the identifier token
  * @returns 0 on success, 1 otherwise
 */
-int cfg_parse_string(cfg_t* cfg, const char* str, size_t len, const char* id, size_t id_len) {
+static int cfg_parse_string(cfg_t* cfg, const char* str, size_t len, const char* id, size_t id_len) {
     if (len < 2 || str[0] != '\"' || str[len - 1] != '\"') {
         cfg_set_last_error(cfg, "invalid string format");
         return 1;
@@ -456,7 +439,7 @@ int cfg_parse_string(cfg_t* cfg, const char* str, size_t len, const char* id, si
  * @param len length of the buffer
  * @returns 0 on success, 1 otherwise
 */
-int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
+int cfg_parse(cfg_t* cfg, const char* str, size_t len) {
     size_t c1 = 0;
     size_t c2 = 0;
     size_t id_pos = 0;
@@ -552,7 +535,7 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
                             cfg_set_last_error(cfg, "invalid number: %.*s (%s:%lu:%lu)", value_len, &str[value_pos], cfg->path, line, col - value_len);
                             return 1;
                         }
-                        if (cfg_is_character_in_string(&str[value_pos], '.', value_len)) {
+                        if (memchr(&str[value_pos], '.', value_len) != NULL) {
                             if (cfg_parse_floating(cfg, &str[value_pos], value_len, &str[id_pos], id_len) != 0) {
                                 cfg_set_last_error(cfg, "failed to parse floating: %.*s (%s:%lu:%lu): %s", value_len, &str[value_pos], cfg->path, line, col - value_len, cfg_get_last_error(cfg));
                                 return 1;
@@ -610,7 +593,7 @@ int cfg_parse(cfg_t* cfg, const char* str, off_t len) {
  * @param fd File descriptor
  * @returns Size of file in bytes
  */
-size_t cfg_get_file_size(int fd) {
+static size_t cfg_get_file_size(int fd) {
     struct stat s;
 
     fstat(fd, &s);
@@ -659,12 +642,11 @@ int cfg_load(cfg_t* cfg, const char* path) {
         goto cfg_load_close_fd;
     }
 
-    if (cfg_parse(cfg, raw_ptr, raw_len) != 0) {
+    if (cfg_parse(cfg, raw_ptr, (size_t)raw_len) != 0) {
         cfg_set_last_error(cfg, "parsing failed: %s", cfg_get_last_error(cfg));
         status = 1;
     }
 
-cfg_load_unmap:
     munmap(raw_ptr, raw_len);
 
 cfg_load_close_fd:

@@ -29,6 +29,7 @@ typedef struct cfg_s {
     size_t settings_len;
 } cfg_t;
 
+int cfg_parse(cfg_t* cfg, const char* str, size_t len);
 int cfg_load(cfg_t* cfg, const char* path);
 void cfg_free(cfg_t* cfg);
 
