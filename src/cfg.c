@@ -133,11 +133,7 @@ void cfg_dump(cfg_t* cfg) {
 static int cfg_add_setting(cfg_t* cfg, cfg_setting_t* setting) {
     void* tmp;
 
-    if (cfg->settings_len == 0) {
-        tmp = malloc(sizeof(cfg_setting_t*) * (cfg->settings_len + 1));
-    } else {
-        tmp = realloc(cfg->settings, sizeof(cfg_setting_t*) * (cfg->settings_len + 1));
-    }
+    tmp = realloc(cfg->settings_len == 0 ? NULL : cfg->settings, sizeof(cfg_setting_t*) * (cfg->settings_len + 1));
 
     if (tmp == NULL) {
         cfg_set_last_error(cfg, "out of memory");
