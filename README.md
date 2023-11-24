@@ -1,5 +1,5 @@
 # libcfg
-robust and minimalistic configuration file library. keeps track of syntax errors, supports `boolean values`, `integers`, `floating point numbers` and `strings`.
+robust and minimalistic configuration file parser. keeps track of syntax errors, supports `boolean values`, `integers`, `floating point numbers` and `strings`.
 
 ## example
 
