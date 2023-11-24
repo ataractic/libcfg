@@ -77,7 +77,9 @@ void cfg_free(cfg_t* cfg) {
         free(current);
     }
 
-    free(cfg->settings);
+    if (cfg->settings_len != 0) {
+        free(cfg->settings);
+    }
 
     if (cfg->last_error != NULL) {
         free(cfg->last_error);
@@ -484,6 +486,12 @@ int cfg_parse(cfg_t* cfg, const char* str, size_t len) {
                 }
                 id_pos = c1;
                 id_len = c2 - c1;
+
+
+                if (id_len == 0) {
+                    cfg_set_last_error(cfg, "no identifier (%s:%lu:%lu)", cfg->path, line, col - id_len);
+                    return 1;
+                }
 
                 /* trim whitespaces at the end of the identifier */
                 for (size_t i = 1; cfg_is_whitespace(str[c2 - i]); i++) {
