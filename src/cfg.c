@@ -468,7 +468,7 @@ int cfg_parse(cfg_t* cfg, const char* str, size_t len) {
             }
             /* forward the cursor to the end of the line */
             case '#': {
-                while (str[c2] != '\n' && c2 < len) {
+                while (c2 < len && str[c2] != '\n') {
                     c2 += 1;
                     col += 1;
                 }
@@ -478,7 +478,7 @@ int cfg_parse(cfg_t* cfg, const char* str, size_t len) {
             default: {
                 c1 = c2;
                 /* get the position and length of the identifier */
-                while (str[c2] != '=' && c2 < len) {
+                while (c2 < len && str[c2] != '=') {
                     c2 += 1;
                     col += 1;
                 }
@@ -499,14 +499,14 @@ int cfg_parse(cfg_t* cfg, const char* str, size_t len) {
                 /* forward to the value skipping whitespaces */
                 c2 += 1;
                 col += 1;
-                while (cfg_is_whitespace(str[c2]) && c2 < len) {
+                while (c2 < len && cfg_is_whitespace(str[c2])) {
                     c2 += 1;
                     col += 1;
                 }
                 c1 = c2;
 
                 /* get the position and length of the value until end of line */
-                while (str[c2] != '\n' && str[c2] != '#' && c2 < len) {
+                while (c2 < len && str[c2] != '\n' && str[c2] != '#') {
                     c2 += 1;
                     col += 1;
                 }
