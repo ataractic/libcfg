@@ -500,9 +500,13 @@ int cfg_parse(cfg_t* cfg, const char* str, size_t len) {
                     return 1;
                 }
 
-                /* forward to the value skipping whitespaces */
-                c2 += 1;
-                col += 1;
+                /* skip the assignment operator */
+                if (c2 + 1 < len && str[c2] == '=') {
+                    c2 += 1;
+                    col += 1;
+                }
+
+                /* forward to the value */
                 while (c2 < len && cfg_is_whitespace(str[c2])) {
                     c2 += 1;
                     col += 1;
@@ -616,9 +620,7 @@ int cfg_load(cfg_t* cfg, const char* path) {
     off_t raw_len;
     char *raw_ptr;
 
-    cfg->last_error = NULL;
     cfg->path = strdup(path);
-    cfg->settings_len = 0;
 
     fd = open(path, O_RDONLY, 0600);
     if (fd == -1) {
