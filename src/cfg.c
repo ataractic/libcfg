@@ -616,7 +616,7 @@ int cfg_load(cfg_t* cfg, const char* path) {
     cfg->path = strdup(path);
     cfg->settings_len = 0;
 
-    fd = open(path, O_RDWR, 0600);
+    fd = open(path, O_RDONLY, 0600);
     if (fd == -1) {
         cfg_set_last_error(cfg, "failed to open %s", path);
         return 1;
