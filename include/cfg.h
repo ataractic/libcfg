@@ -31,6 +31,7 @@ enum cfg_error_e {
  * @brief supported setting types
 */
 enum cfg_setting_type_e {
+    cfg_setting_type_unknown,
     cfg_setting_type_integer,
     cfg_setting_type_floating,
     cfg_setting_type_string,
@@ -64,7 +65,6 @@ typedef struct cfg_s {
 } cfg_t;
 
 extern int cfg_errno;
-extern cfg_t cfg_g;
 
 const char *cfg_strerror(int errnum);
 void cfg_perror(const char *error_string);

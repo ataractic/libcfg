@@ -9,15 +9,15 @@
 #include <sys/stat.h>
 #include "../include/cfg.h"
 
-cfg_t cfg_g = {
+int cfg_errno = 0; /* config error */
+
+static cfg_t cfg_g = { /* cfg object */
     .col = 1,
     .line = 1,
     .path = NULL,
     .settings = NULL,
     .settings_len = 0
-}; /* global config object */
-
-int cfg_errno = 0; /* config error */
+};
 
 static const char* cfg_error_string_list[] = { /* error strings */
     [cfg_success] = "success",
@@ -711,4 +711,6 @@ enum cfg_setting_type_e cfg_get_setting_type(const char* identifier) {
             return cfg_g.settings[i]->type;
         }
     }
+
+    return cfg_setting_type_unknown;
 }
