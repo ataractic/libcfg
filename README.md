@@ -20,63 +20,90 @@ my_double = 3.456789
 #include <stdio.h>
 #include "../include/cfg.h"
 
-int main() {
-    int status = 0;
-    cfg_t cfg; /* = {0} */
+typedef struct my_config_s {
     long long my_int;
     long double my_double;
     bool my_bool;
     char* my_string;
+    char* my_drum_machine;
+} my_config_t;
 
-    /* initializes the object */
-    cfg_init(&cfg);
-
+int load_my_config(my_config_t* my_config) {
     /* loads a config file and gets its content. */
-    if (cfg_load(&cfg, "./test_1.cfg") != 0) {
-        /* prints the reason of the fail */
-        printf("cfg: error: %s\n", cfg_get_last_error(&cfg));
-        status = 1;
-        goto main_free;
+    if (cfg_load("./test_1.cfg") != 0) {
+        return 1;
     }
 
     /* it is also possible to load a config from a buffer */
-    if (cfg_parse(&cfg, "buffer.content=808", 18) != 0) {
-        printf("cfg: error: %s\n", cfg_get_last_error(&cfg));
-        status = 1;
-        goto main_free;
+    if (cfg_parse("my_drum_machine=\"909\"", 21) != 0) {
+        return 1;
     }
 
     /* get the setting values (this does not make a copy) */
-    if (cfg_get_setting(&cfg, "my_string", &my_string) != 0) {
-        printf("cfg: error: %s\n", cfg_get_last_error(&cfg));
-        status = 1;
-        goto main_free;
+    if (cfg_get_setting("my_string", &my_config->my_string) != 0) {
+        return 1;
     }
-    if (cfg_get_setting(&cfg, "my_int", &my_int) != 0) {
-        printf("cfg: error: %s\n", cfg_get_last_error(&cfg));
-        status = 1;
-        goto main_free;
+    if (cfg_get_setting("my_int", &my_config->my_int) != 0) {
+        return 1;
     }
-    if (cfg_get_setting(&cfg, "my_double", &my_double) != 0) {
-        printf("cfg: error: %s\n", cfg_get_last_error(&cfg));
-        status = 1;
-        goto main_free;
+    if (cfg_get_setting("my_double", &my_config->my_double) != 0) {
+        return 1;
     }
-    if (cfg_get_setting(&cfg, "my_bool", &my_bool) != 0) {
-        printf("cfg: error: %s\n", cfg_get_last_error(&cfg));
-        status = 1;
-        goto main_free;
+    if (cfg_get_setting("my_bool", &my_config->my_bool) != 0) {
+        return 1;
+    }
+    if (cfg_get_setting("my_drum_machine", &my_config->my_drum_machine) != 0) {
+        return 1;
     }
 
     /* dumps the config */
-    cfg_dump(&cfg);
+    cfg_dump();
 
-main_free:
-    /* free the cfg object and remove the settings */
-    cfg_free(&cfg);
+    return 0;
+}
+
+int main(void) {
+    int status = 0;
+    my_config_t my_config;
+
+    /* here we handle the configuration loading in another function */
+    if (load_my_config(&my_config) != 0) {
+        fprintf(stderr, "cfg: error: %s (%s:%lu:%lu)\n",
+            cfg_strerror(cfg_errno),
+            cfg_get_path(),
+            cfg_get_error_line(),
+            cfg_get_error_col()
+        );
+        status = 1;
+        goto main_config_free;
+    }
+
+    /* use the loaded config in the program */
+    printf("hi, i am %s, %s warrior. i am %Lf cm tall and have %lld street cred. my favorite drum machine is the %s.\n", 
+        my_config.my_string,
+        my_config.my_bool ? "true" : "false",
+        my_config.my_double,
+        my_config.my_int,
+        my_config.my_drum_machine
+    );
+
+
+main_config_free:
+    /* must free the cfg object after use*/
+    cfg_free(); 
 
     return status;
 }
+```
+
+```
+terminal@localhost $ ./run-test_1.sh
+my_string="mystère"
+my_int=1337
+my_bool=true
+my_double=3.140000
+my_drum_machine="909"
+hi, i am mystère, true warrior. i am 3.140000 cm tall and have 1337 street cred. my favorite drum machine is the 909.
 ```
 
 ## feedback
