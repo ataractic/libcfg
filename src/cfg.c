@@ -20,22 +20,22 @@ static cfg_t cfg_g = { /* cfg object */
 };
 
 static const char* cfg_error_string_list[] = { /* error strings */
-    [cfg_success] = "success",
-    [cfg_error_mem] = "out of memory",
-    [cfg_error_invint] = "invalid integer",
-    [cfg_error_invfloat] = "invalid float",
-    [cfg_error_invstring] = "invalid string",
-    [cfg_error_invbool] = "invalid boolean",
-    [cfg_error_invnull] = "invalid value",
-    [cfg_error_invid] = "invalid identifier",
-    [cfg_error_range] = "out of range",
-    [cfg_error_parse] = "parsing failed",
-    [cfg_error_open] = "failed to open",
-    [cfg_error_size] = "failed to get file size",
-    [cfg_error_seek] = "failed to seek end of file",
-    [cfg_error_map] = "failed to map file content to memory",
-    [cfg_error_nexist] = "setting doesn't exist",
-    [cfg_error_huh] = "huh?",
+    [CFG_SUCCESS] = "success",
+    [CFG_EMEM] = "out of memory",
+    [CFG_EINVINT] = "invalid integer",
+    [CFG_EINVFLOAT] = "invalid float",
+    [CFG_EINVSTRING] = "invalid string",
+    [CFG_EINVBOOL] = "invalid boolean",
+    [CFG_EINVNULL] = "invalid value",
+    [CFG_EINVID] = "invalid identifier",
+    [CFG_ERANGE] = "out of range",
+    [CFG_EPARSE] = "parsing failed",
+    [CFG_EOPEN] = "failed to open",
+    [CFG_ESIZE] = "failed to get file size",
+    [CFG_ESEEK] = "failed to seek end of file",
+    [CFG_EMAP] = "failed to map file content to memory",
+    [CFG_ENEXIST] = "setting doesn't exist",
+    [CFG_EHUH] = "huh?",
 };
 
 /**
@@ -134,7 +134,7 @@ static int cfg_add_setting(cfg_setting_t* setting) {
     tmp = realloc(cfg_g.settings_len == 0 ? NULL : cfg_g.settings, sizeof(cfg_setting_t*) * (cfg_g.settings_len + 1));
 
     if (tmp == NULL) {
-        cfg_errno = cfg_error_mem;
+        cfg_errno = CFG_EMEM;
         return 1;
     }
     
@@ -320,20 +320,20 @@ static int cfg_parse_integer(const char* str, size_t len, const char* id, size_t
     errno = 0;
     copy = strndup(str, len); /* handle case where the value is the last thing in the file */
     if (copy == NULL && errno == ENOMEM) {
-        cfg_errno = cfg_error_mem;
+        cfg_errno = CFG_EMEM;
         return 1;
     }
 
     errno = 0;
     result = strtoll(copy, &endptr, 10);
     if (endptr == copy) {
-        cfg_errno = cfg_error_invint;
+        cfg_errno = CFG_EINVINT;
         status = 1;
         goto cfg_parse_integer_free;
     }
 
     if (errno == ERANGE || errno == EINVAL) {
-        cfg_errno = cfg_error_range;
+        cfg_errno = CFG_ERANGE;
         status = 1;
         goto cfg_parse_integer_free;
     }
@@ -366,20 +366,20 @@ static int cfg_parse_floating(const char* str, size_t len, const char* id, size_
     errno = 0;
     copy = strndup(str, len); /* handle case where the value is the last thing in the file */
     if (copy == NULL && errno == ENOMEM) {
-        cfg_errno = cfg_error_mem;
+        cfg_errno = CFG_EMEM;
         return 1;
     }
 
     errno = 0;
     result = strtold(copy, &endptr);
     if (endptr == copy) {
-        cfg_errno = cfg_error_invfloat;
+        cfg_errno = CFG_EINVFLOAT;
         status = 1;
         goto cfg_parse_floating_free;
     }
 
     if (errno == ERANGE || errno == EINVAL) {
-        cfg_errno = cfg_error_range;
+        cfg_errno = CFG_ERANGE;
         status = 1;
         goto cfg_parse_floating_free;
     }
@@ -405,7 +405,7 @@ cfg_parse_floating_free:
 */
 static int cfg_parse_string(const char* str, size_t len, const char* id, size_t id_len) {
     if (len < 2 || str[0] != '\"' || str[len - 1] != '\"') {
-        cfg_errno = cfg_error_invstring;
+        cfg_errno = CFG_EINVSTRING;
         return 1;
     }
 
@@ -469,7 +469,7 @@ int cfg_parse(const char* str, size_t len) {
 
 
                 if (id_len == 0) {
-                    cfg_errno = cfg_error_invid;
+                    cfg_errno = CFG_EINVID;
                     return 1;
                 }
 
@@ -480,7 +480,7 @@ int cfg_parse(const char* str, size_t len) {
 
                 /* check for key validity */
                 if (!cfg_is_identifier_valid(&str[id_pos], id_len)) {
-                    cfg_errno = cfg_error_invid;
+                    cfg_errno = CFG_EINVID;
                     return 1;
                 }
 
@@ -524,7 +524,7 @@ int cfg_parse(const char* str, size_t len) {
                     case '8':
                     case '9': {
                         if (!cfg_is_number_syntax_valid(&str[value_pos], value_len)) {
-                            cfg_errno = cfg_error_nexist;
+                            cfg_errno = CFG_ENEXIST;
                             return 1;
                         }
                         if (memchr(&str[value_pos], '.', value_len) != NULL) {
@@ -557,13 +557,13 @@ int cfg_parse(const char* str, size_t len) {
                                 return 1;
                             }
                         } else {
-                            cfg_errno = cfg_error_invbool;
+                            cfg_errno = CFG_EINVBOOL;
                             return 1;
                         }
                         break;
                     }
                     default: {
-                        cfg_errno = cfg_error_invnull;
+                        cfg_errno = CFG_EINVNULL;
                         return 1;
                     }
                 }
@@ -602,26 +602,26 @@ int cfg_load(const char* path) {
 
     fd = open(path, O_RDONLY, 0600);
     if (fd == -1) {
-        cfg_errno = cfg_error_open;
+        cfg_errno = CFG_EOPEN;
         return 1;
     }
 
     if (cfg_get_file_size(fd) == 0) {
-        cfg_errno = cfg_error_size;
+        cfg_errno = CFG_ESIZE;
         status = 1;
         goto cfg_load_close_fd;
     }
 
     raw_len = lseek(fd, 0, SEEK_END);
     if (raw_len == -1) {
-        cfg_errno = cfg_error_seek;
+        cfg_errno = CFG_ESEEK;
         status = 1;
         goto cfg_load_close_fd;
     }
 
     raw_ptr = mmap(0, raw_len, PROT_READ, MAP_PRIVATE, fd, 0);
     if (raw_ptr == MAP_FAILED) {
-        cfg_errno = cfg_error_map;
+        cfg_errno = CFG_EMAP;
         status = 1;
         goto cfg_load_close_fd;
     }
@@ -665,14 +665,14 @@ int cfg_get_setting(const char* identifier, void* value) {
                     return 0;
                 }
                 default: {
-                    cfg_errno = cfg_error_huh;
+                    cfg_errno = CFG_EHUH;
                     return 1;
                 }
             }
         }
     }
     
-    cfg_errno = cfg_error_nexist;
+    cfg_errno = CFG_ENEXIST;
     return 1;
 }
 
