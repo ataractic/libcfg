@@ -68,7 +68,12 @@ int main(void) {
 
     /* here we handle the configuration loading in another function */
     if (load_my_config(&my_config) != 0) {
-        fprintf(stderr, "cfg: error: %s (%s:%lu:%lu)\n", cfg_strerror(cfg_errno), cfg_get_path(), cfg_get_error_line(), cfg_get_error_col());
+        fprintf(stderr, "cfg: error: %s (%s:%lu:%lu)\n",
+            cfg_strerror(cfg_errno),
+            cfg_get_path(),
+            cfg_get_error_line(),
+            cfg_get_error_col()
+        );
         status = 1;
         goto main_config_free;
     }
