@@ -116,7 +116,7 @@ void cfg_dump(void) {
                 printf("%s=%Lf\n", current->identifier, current->floating);
                 break;
             }
-            default: {
+            case CFG_STYPE_UNKNOWN: {
                 break;
             }
         }
@@ -439,6 +439,7 @@ int cfg_parse(const char* str, size_t len) {
             case ' ': {
                 c2 += 1;
                 cfg_g.col += 1;
+                break;
             }
             /* end of line expect an identifier */
             case '\n': {
@@ -584,7 +585,7 @@ static size_t cfg_get_file_size(int fd) {
     struct stat s;
 
     fstat(fd, &s);
-    return s.st_size;
+    return (size_t)(s.st_size);
 }
 
 /**
@@ -619,7 +620,7 @@ int cfg_load(const char* path) {
         goto cfg_load_close_fd;
     }
 
-    raw_ptr = mmap(0, raw_len, PROT_READ, MAP_PRIVATE, fd, 0);
+    raw_ptr = mmap(0, (size_t)raw_len, PROT_READ, MAP_PRIVATE, fd, 0);
     if (raw_ptr == MAP_FAILED) {
         cfg_errno = CFG_EMAP;
         status = 1;
@@ -630,7 +631,7 @@ int cfg_load(const char* path) {
         status = 1;
     }
 
-    munmap(raw_ptr, raw_len);
+    munmap(raw_ptr, (size_t)raw_len);
 
 cfg_load_close_fd:
     close(fd);
@@ -664,7 +665,7 @@ int cfg_get_setting(const char* identifier, void* value) {
                     *(long double*)value = cfg_g.settings[i]->floating;
                     return 0;
                 }
-                default: {
+                case CFG_STYPE_UNKNOWN: {
                     cfg_errno = CFG_EHUH;
                     return 1;
                 }

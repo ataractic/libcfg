@@ -9,7 +9,7 @@ typedef struct my_config_s {
     char* my_drum_machine;
 } my_config_t;
 
-int load_my_config(my_config_t* my_config) {
+static int load_my_config(my_config_t* my_config) {
     /* loads a config file and gets its content. */
     if (cfg_load("./test_1.cfg") != 0) {
         return 1;
