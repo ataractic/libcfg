@@ -73,7 +73,7 @@ void cfg_free(void) {
     for (size_t i = 0; i < cfg_g.settings_len; ++i) {
         current = cfg_g.settings[i];
 
-        if (current->type == cfg_setting_type_string) {
+        if (current->type == CFG_STYPE_STRING) {
             free(current->string);
         }
 
@@ -100,19 +100,19 @@ void cfg_dump(void) {
         current = cfg_g.settings[i];
 
         switch (current->type) {
-            case cfg_setting_type_string: {
+            case CFG_STYPE_STRING: {
                 printf("%s=\"%s\"\n", current->identifier, current->string);
                 break;
             }
-            case cfg_setting_type_integer: {
+            case CFG_STYPE_INT: {
                 printf("%s=%lld\n", current->identifier, current->integer);
                 break;
             }
-            case cfg_setting_type_boolean: {
+            case CFG_STYPE_BOOL: {
                 printf("%s=%s\n", current->identifier, current->boolean ? "true" : "false");
                 break;
             }
-            case cfg_setting_type_floating: {
+            case CFG_STYPE_FLOAT: {
                 printf("%s=%Lf\n", current->identifier, current->floating);
                 break;
             }
@@ -156,7 +156,7 @@ static int cfg_add_setting(cfg_setting_t* setting) {
 static int cfg_add_string_setting(const char* str, size_t str_len, const char* id, size_t id_len) {
     cfg_setting_t* setting = malloc(sizeof(cfg_setting_t));
 
-    setting->type = cfg_setting_type_string;
+    setting->type = CFG_STYPE_STRING;
     setting->identifier = strndup(id, id_len);
     setting->string = strndup(str, str_len);
 
@@ -180,7 +180,7 @@ static int cfg_add_string_setting(const char* str, size_t str_len, const char* i
 static int cfg_add_boolean_setting(bool b, const char* id, size_t id_len) {
     cfg_setting_t* setting = malloc(sizeof(cfg_setting_t));
 
-    setting->type = cfg_setting_type_boolean;
+    setting->type = CFG_STYPE_BOOL;
     setting->identifier = strndup(id, id_len);
     setting->boolean = b;
 
@@ -203,7 +203,7 @@ static int cfg_add_boolean_setting(bool b, const char* id, size_t id_len) {
 static int cfg_add_floating_setting(long double value, const char* id, size_t id_len) {
     cfg_setting_t* setting = malloc(sizeof(cfg_setting_t));
 
-    setting->type = cfg_setting_type_floating;
+    setting->type = CFG_STYPE_FLOAT;
     setting->identifier = strndup(id, id_len);
     setting->floating = value;
 
@@ -226,7 +226,7 @@ static int cfg_add_floating_setting(long double value, const char* id, size_t id
 static int cfg_add_integer_setting(long long value, const char* id, size_t id_len) {
     cfg_setting_t* setting = malloc(sizeof(cfg_setting_t));
 
-    setting->type = cfg_setting_type_integer;
+    setting->type = CFG_STYPE_INT;
     setting->identifier = strndup(id, id_len);
     setting->integer = value;
 
@@ -648,19 +648,19 @@ int cfg_get_setting(const char* identifier, void* value) {
     for (size_t i = 0; i < cfg_g.settings_len; i++) {
         if (strcmp(identifier, cfg_g.settings[i]->identifier) == 0) {
             switch (cfg_g.settings[i]->type) {
-                case cfg_setting_type_boolean: {
+                case CFG_STYPE_BOOL: {
                     *(bool*)value = cfg_g.settings[i]->boolean;
                     return 0;
                 }
-                case cfg_setting_type_string: {
+                case CFG_STYPE_STRING: {
                     *(char**)value = cfg_g.settings[i]->string;
                     return 0;
                 }
-                case cfg_setting_type_integer: {
+                case CFG_STYPE_INT: {
                     *(long long*)value = cfg_g.settings[i]->integer;
                     return 0;
                 }
-                case cfg_setting_type_floating: {
+                case CFG_STYPE_FLOAT: {
                     *(long double*)value = cfg_g.settings[i]->floating;
                     return 0;
                 }
@@ -712,5 +712,5 @@ enum cfg_setting_type_e cfg_get_setting_type(const char* identifier) {
         }
     }
 
-    return cfg_setting_type_unknown;
+    return CFG_STYPE_UNKNOWN;
 }

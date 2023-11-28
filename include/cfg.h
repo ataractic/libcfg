@@ -30,11 +30,11 @@ enum cfg_error_e {
  * @brief supported setting types
 */
 enum cfg_setting_type_e {
-    cfg_setting_type_unknown,
-    cfg_setting_type_integer,
-    cfg_setting_type_floating,
-    cfg_setting_type_string,
-    cfg_setting_type_boolean,
+    CFG_STYPE_UNKNOWN,
+    CFG_STYPE_INT,
+    CFG_STYPE_FLOAT,
+    CFG_STYPE_STRING,
+    CFG_STYPE_BOOL,
 };
 
 /**
