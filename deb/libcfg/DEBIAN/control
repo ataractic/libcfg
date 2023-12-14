@@ -1,0 +1,5 @@
+Package: libcfg
+Version: 0.0.1
+Maintainer: mystère
+Architecture: amd64
+Description: robust and minimalistic configuration file parser
